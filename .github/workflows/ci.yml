@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff
+      - run: ruff check .
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check JavaScript syntax
+        run: node --check droiddrop/static/app.js
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every supported version on Linux; oldest and newest stable on macOS and Windows.
+        os: [ubuntu-latest]
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+        include:
+          - { os: macos-latest, python: "3.9" }
+          - { os: macos-latest, python: "3.14" }
+          - { os: windows-latest, python: "3.9" }
+          - { os: windows-latest, python: "3.14" }
+    runs-on: ${{ matrix.os }}
+    name: test (${{ matrix.os }}, py${{ matrix.python }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true  # 3.15 is still in pre-release
+      - run: python -W error::DeprecationWarning -m unittest discover -s tests -v
+      - name: Install and run the CLI
+        run: |
+          pip install .
+          droiddrop --version

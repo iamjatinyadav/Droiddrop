@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DroidDrop</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>">
+<link rel="stylesheet" href="app.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><div class="logo">⇅</div> DroidDrop</div>
+    <div class="section-title"><span>Devices</span><span id="pollDot" title="Auto-refreshing">●</span></div>
+    <div class="devices" id="devices"></div>
+    <div class="aside-foot">
+      <button class="primary" id="openWifi">📶 Connect via Wi-Fi</button>
+      <button id="openHelp">🔌 How to connect via USB</button>
+    </div>
+  </aside>
+
+  <main id="main">
+    <!-- Welcome / setup screen -->
+    <section class="welcome" id="welcome">
+      <h1>Connect your Android phone</h1>
+      <p>Pick how you want to connect. Once connected, you can browse, upload and download files.</p>
+      <div class="notice hidden" id="noAdb">
+        <b>adb is not installed.</b> The app needs Android platform-tools. Install it, then restart the app:<br>
+        macOS: <code>brew install --cask android-platform-tools</code> &nbsp;·&nbsp;
+        Windows: <code>winget install Google.PlatformTools</code> &nbsp;·&nbsp;
+        Linux: <code>sudo apt install adb</code>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <h2>🔌 USB cable</h2>
+          <p class="hint">Fastest. Works on every Android version.</p>
+          <ol>
+            <li>On the phone, open <b>Settings → About phone</b> and tap <b>Build number</b> 7 times to unlock Developer options.</li>
+            <li>Go to <b>Settings → System → Developer options</b> and turn on <b>USB debugging</b>.</li>
+            <li>Plug the phone into this computer with a USB cable.</li>
+            <li>Tap <b>Allow</b> on the phone when it asks "Allow USB debugging?"</li>
+          </ol>
+          <p class="hint foot">The phone appears in the left sidebar automatically.</p>
+        </div>
+        <div class="card">
+          <h2>📶 Wi-Fi</h2>
+          <p class="hint">No cable needed. The phone and computer must be on the same Wi-Fi.</p>
+          <ol>
+            <li>Unlock Developer options (same as step 1 on the left).</li>
+            <li><b>Android 11+</b>: turn on <b>Wireless debugging</b> in Developer options, then pair with a code.</li>
+            <li><b>Older Android</b>: connect once with USB, then click <b>Switch to Wi-Fi</b> next to the device.</li>
+          </ol>
+          <div class="foot"><button class="primary" data-open-wifi>📶 Connect via Wi-Fi</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- File browser -->
+    <section id="browser" class="hidden" style="display:flex; flex-direction:column; flex:1; min-height:0;">
+      <div class="devbar">
+        <div>
+          <div class="title" id="devTitle">Phone</div>
+          <div class="meta" id="devMeta"></div>
+        </div>
+        <div class="storage" id="storage"></div>
+      </div>
+      <div class="toolbar">
+        <button class="ghost" id="upBtn" title="Up one folder">⬆︎</button>
+        <div class="crumbs" id="crumbs"></div>
+        <input type="search" class="search" id="filter" placeholder="Filter files…">
+        <div class="seg" title="View">
+          <button data-view="list" title="List view">☰</button>
+          <button data-view="grid" title="Grid view">▦</button>
+        </div>
+        <button id="refreshBtn" title="Refresh">⟳</button>
+        <button id="mkdirBtn">＋ New folder</button>
+        <button id="uploadDirBtn">⬆ Upload folder</button>
+        <button class="primary" id="uploadBtn">⬆ Upload files</button>
+        <input type="file" id="fileInput" multiple hidden>
+        <input type="file" id="dirInput" webkitdirectory multiple hidden>
+      </div>
+      <div class="places" id="places"></div>
+      <div class="bulk" id="bulk">
+        <span id="bulkCount"></span>
+        <button class="small" id="bulkDownload">⬇ Download</button>
+        <button class="small danger" id="bulkDelete">Delete</button>
+        <button class="small ghost" id="bulkAll">Select all</button>
+        <button class="small ghost" id="bulkClear">Clear</button>
+      </div>
+      <div class="files-wrap">
+        <table>
+          <thead><tr>
+            <th class="check"><input type="checkbox" id="checkAll"></th>
+            <th class="sortable" data-sort="name">Name</th>
+            <th class="sortable" data-sort="size">Size</th>
+            <th class="sortable" data-sort="mtime">Modified</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="files"></tbody>
+        </table>
+        <div class="grid hidden" id="grid"></div>
+      </div>
+      <div class="drop" id="drop">Drop files or folders to send them to the phone</div>
+    </section>
+  </main>
+</div>
+
+<!-- Wi-Fi dialog -->
+<dialog id="wifiDlg">
+  <div class="dlg-head"><h3>📶 Connect via Wi-Fi</h3><button class="ghost" data-close>✕</button></div>
+  <div class="dlg-body">
+    <div class="tabs">
+      <button data-tab="pair" class="active">Pair code (Android 11+)</button>
+      <button data-tab="direct">Connect by IP</button>
+      <button data-tab="usb">Using USB first</button>
+    </div>
+
+    <div data-pane="pair">
+      <ol class="steps">
+        <li>On the phone: <b>Developer options → Wireless debugging</b> → turn it on.</li>
+        <li>Tap <b>Pair device with pairing code</b>. Enter the IP, port and 6-digit code shown.</li>
+      </ol>
+      <div class="fields">
+        <div><label>IP address</label><input type="text" id="pairHost" placeholder="192.168.1.23"></div>
+        <div><label>Port</label><input type="number" id="pairPort" placeholder="37123"></div>
+      </div>
+      <div><label>Pairing code</label><input type="text" id="pairCode" placeholder="123456" inputmode="numeric" maxlength="6"></div>
+      <div style="margin-top:12px"><button class="primary" id="pairBtn">Pair</button></div>
+      <div class="msg" id="pairMsg"></div>
+      <div class="divider"></div>
+      <ol class="steps" start="3">
+        <li>Then, on the main <b>Wireless debugging</b> screen, find <b>IP address &amp; Port</b> (the port is different from the pairing one).</li>
+      </ol>
+      <div class="fields">
+        <div><label>IP address</label><input type="text" id="conHost" placeholder="192.168.1.23"></div>
+        <div><label>Port</label><input type="number" id="conPort" placeholder="41567"></div>
+      </div>
+      <button class="primary" id="conBtn">Connect</button>
+      <div class="msg" id="conMsg"></div>
+    </div>
+
+    <div data-pane="direct" class="hidden">
+      <ol class="steps">
+        <li>Use this if the phone is already paired, or you've enabled <code>adb tcpip 5555</code>.</li>
+        <li>Find the phone's IP in <b>Settings → About phone → Status</b> (or Wireless debugging).</li>
+      </ol>
+      <div class="fields">
+        <div><label>IP address</label><input type="text" id="dirHost" placeholder="192.168.1.23"></div>
+        <div><label>Port</label><input type="number" id="dirPort" value="5555"></div>
+      </div>
+      <button class="primary" id="dirBtn">Connect</button>
+      <div class="msg" id="dirMsg"></div>
+    </div>
+
+    <div data-pane="usb" class="hidden">
+      <ol class="steps">
+        <li>Works on <b>any Android version</b> (including Android 10 and older).</li>
+        <li>Connect the phone with USB and allow USB debugging.</li>
+        <li>Make sure the phone is on the same Wi-Fi as this computer.</li>
+        <li>Click <b>Switch to Wi-Fi</b> below. When it says connected, unplug the cable.</li>
+      </ol>
+      <div id="usbList"></div>
+      <div class="msg" id="usbMsg"></div>
+    </div>
+  </div>
+</dialog>
+
+<!-- USB help dialog -->
+<dialog id="helpDlg">
+  <div class="dlg-head"><h3>🔌 Connect via USB</h3><button class="ghost" data-close>✕</button></div>
+  <div class="dlg-body">
+    <ol class="steps" style="font-size:14px; gap:8px">
+      <li>On the phone, open <b>Settings → About phone</b> and tap <b>Build number</b> 7 times.</li>
+      <li>Open <b>Settings → System → Developer options</b> and enable <b>USB debugging</b>.</li>
+      <li>Connect the cable. If the phone asks for a USB mode, any mode works (choose <b>File transfer</b> if unsure).</li>
+      <li>Tap <b>Allow</b> on the "Allow USB debugging?" popup. Tick "Always allow from this computer" to skip it next time.</li>
+    </ol>
+    <p class="hint" style="color:var(--muted); font-size:13px">Shows as <b>unauthorized</b>? Unlock the phone and look for the popup. Still nothing? Try a different cable — some cables only charge.</p>
+  </div>
+</dialog>
+
+<div class="transfers" id="transfers">
+  <header><span id="txTitle">Transfers</span><button class="ghost small" id="txClose">✕</button></header>
+  <div class="list" id="txList"></div>
+</div>
+<div class="viewer hidden" id="viewer">
+  <div class="v-top">
+    <div class="v-title"><b id="vName"></b><span id="vMeta"></span></div>
+    <button id="vOpen" title="Open in a new tab">↗ Open</button>
+    <button id="vDownload">⬇ Download</button>
+    <button id="vClose" title="Close (Esc)">✕</button>
+  </div>
+  <div class="v-stage" id="vStage"></div>
+  <div class="v-bottom" id="vCount"></div>
+  <button class="v-nav prev" id="vPrev" title="Previous (←)">‹</button>
+  <button class="v-nav next" id="vNext" title="Next (→)">›</button>
+</div>
+<div class="toast" id="toast"></div>
+
+</body>
+</html>

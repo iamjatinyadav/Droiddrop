@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "droiddrop"
+dynamic = ["version"]
+description = "Move files between your computer and an Android phone over USB or Wi-Fi, from a simple web UI."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Jatin Yadav" }]
+requires-python = ">=3.9"
+dependencies = []
+keywords = ["android", "adb", "file-transfer", "usb", "wifi", "mtp-alternative"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Topic :: System :: Filesystems",
+    "Topic :: Utilities",
+]
+
+[project.optional-dependencies]
+# Thumbnails on Linux/Windows when ffmpeg isn't installed (macOS uses the built-in `sips`).
+thumbnails = ["Pillow"]
+
+[project.scripts]
+droiddrop = "droiddrop.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/iamjatinyadav/Droiddrop"
+Issues = "https://github.com/iamjatinyadav/Droiddrop/issues"
+
+[tool.setuptools]
+packages = ["droiddrop"]
+
+[tool.setuptools.dynamic]
+version = { attr = "droiddrop.__version__" }
+
+[tool.setuptools.package-data]
+droiddrop = ["static/*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
